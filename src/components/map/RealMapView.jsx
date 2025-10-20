@@ -15,101 +15,154 @@ function generateColors(n) {
   return colors;
 }
 
-// Component con để xử lý routing
-function RoutingMachineLayer({ routes, locations, selectedVehicle, COLORS }) {
+// Component con để xử lý routing với fix lỗi removeLayer
+function RoutingMachineLayer({
+  routes,
+  locations,
+  selectedVehicle,
+  COLORS,
+  onError,
+}) {
   const map = useMap();
   const routingControlsRef = useRef([]);
 
   useEffect(() => {
-    if (!routes.length || !locations.length) return;
+    if (!routes.length || !locations.length || !map) return;
 
-    // Xóa các routing controls cũ
-    routingControlsRef.current.forEach(control => {
-      if (map) control.remove();
+    // Xóa đường cũ một cách an toàn - FIX LỖI REMOVELAYER
+    routingControlsRef.current.forEach((control) => {
+      try {
+        if (control && control.remove && map && !map._destroyed) {
+          control.remove();
+        }
+      } catch (error) {
+        console.warn("Lỗi khi xóa routing control:", error);
+      }
     });
     routingControlsRef.current = [];
 
-    // Tạo routing controls mới
+    // Vẽ đường mới
     routes.forEach((route, routeIndex) => {
       if (selectedVehicle !== null && selectedVehicle !== routeIndex) return;
 
-      const waypoints = route.map(nodeIdx => {
+      const waypoints = route.map((nodeIdx) => {
         const [lat, lng] = locations[nodeIdx];
         return L.latLng(lat, lng);
       });
 
-      // Danh sách các OSRM servers để luân phiên
-      const osrmServers = [
-        'https://router.project-osrm.org/route/v1',
-        'https://routing.openstreetmap.de/routed-car/route/v1',
-        'https://routing.osrm.at/route/v1'
-      ];
+      try {
+        // Tạo đường đi với error handling
+        const routingControl = L.Routing.control({
+          waypoints,
+          router: L.Routing.osrmv1({
+            serviceUrl: "https://routing.openstreetmap.de/routed-car/route/v1",
+            timeout: 10000,
+            profile: "driving",
+          }),
+          show: false,
+          addWaypoints: false,
+          routeWhileDragging: false,
+          fitSelectedRoutes: false,
+          lineOptions: {
+            styles: [
+              {
+                color: COLORS[routeIndex % COLORS.length],
+                weight: 4,
+                opacity: 0.9,
+              },
+            ],
+          },
+          createMarker: () => null,
 
-      // Tạo router với retry logic
-      const createRouter = (serverIndex = 0) => {
-        return L.Routing.osrmv1({
-          serviceUrl: osrmServers[serverIndex % osrmServers.length],
-          timeout: 30000,
-          profile: 'driving',
-          handleError: function(error) {
-            // Nếu lỗi 429 hoặc connection reset, thử server khác
-            if (error.status === 429 || error.type === 'TypeError') {
-              return createRouter(serverIndex + 1);
+          // Nếu không tìm được đường thì vẽ đường thẳng
+          routesFailed: function () {
+            try {
+              const straightLine = L.polyline(waypoints, {
+                color: COLORS[routeIndex % COLORS.length],
+                weight: 4,
+                opacity: 0.7,
+                dashArray: "10, 10",
+              }).addTo(map);
+
+              routingControlsRef.current.push({
+                remove: () => {
+                  try {
+                    if (
+                      map &&
+                      straightLine &&
+                      !map._destroyed &&
+                      map.hasLayer(straightLine)
+                    ) {
+                      map.removeLayer(straightLine);
+                    }
+                  } catch (error) {
+                    console.warn("Lỗi khi xóa straight line:", error);
+                  }
+                },
+              });
+            } catch (error) {
+              console.warn("Lỗi khi tạo straight line:", error);
             }
-            return error;
-          }
+          },
         });
-      };
 
-      const routingControl = L.Routing.control({
-        waypoints,
-        router: createRouter(routeIndex), // Sử dụng route index để phân tán requests
-        show: false,
-        addWaypoints: false,
-        routeWhileDragging: false,
-        fitSelectedRoutes: false,
-        lineOptions: {
-          styles: [
-            { color: COLORS[routeIndex % COLORS.length], weight: 4, opacity: 0.9 }
-          ]
-        },
-        createMarker: () => null,
-        routeWhileDragging: false,
-        showAlternatives: false,
-        useZoomParameter: false,
+        routingControl.addTo(map);
+        routingControlsRef.current.push(routingControl);
+      } catch (error) {
+        console.warn("Lỗi khi tạo routing control:", error);
+        if (onError) {
+          onError(
+            `Không thể tạo route cho xe ${routeIndex + 1}: ${error.message}`
+          );
+        }
+        // Fallback: vẽ đường thẳng nếu routing thất bại
+        try {
+          const straightLine = L.polyline(waypoints, {
+            color: COLORS[routeIndex % COLORS.length],
+            weight: 4,
+            opacity: 0.7,
+            dashArray: "10, 10",
+          }).addTo(map);
 
-        // Event handlers
-        routesFailed: function (e) {
-          console.log('All routing attempts failed, falling back to straight line');
-          try {
-            const polyline = L.polyline(waypoints, {
-              color: COLORS[routeIndex % COLORS.length],
-              weight: 4,
-              opacity: 0.9,
-              dashArray: '10, 10'
-            });
-            polyline.addTo(map);
-            
-            // Store the fallback polyline for cleanup
-            if (!routingControlsRef.current[routeIndex]) {
-              routingControlsRef.current[routeIndex] = {
-                remove: () => map.removeLayer(polyline)
-              };
-            }
-          } catch (err) {
-            console.error('Error creating fallback route:', err);
+          routingControlsRef.current.push({
+            remove: () => {
+              try {
+                if (
+                  map &&
+                  straightLine &&
+                  !map._destroyed &&
+                  map.hasLayer(straightLine)
+                ) {
+                  map.removeLayer(straightLine);
+                }
+              } catch (error) {
+                console.warn("Lỗi khi xóa fallback line:", error);
+              }
+            },
+          });
+        } catch (fallbackError) {
+          console.warn("Lỗi khi tạo fallback line:", fallbackError);
+          if (onError) {
+            onError(
+              `Không thể vẽ đường thẳng cho xe ${routeIndex + 1}: ${
+                fallbackError.message
+              }`
+            );
           }
         }
-      });
-
-      routingControl.addTo(map);
-      routingControlsRef.current.push(routingControl);
+      }
     });
 
-    // Cleanup
+    // Cleanup khi component unmount - FIX LỖI REMOVELAYER
     return () => {
-      routingControlsRef.current.forEach(control => {
-        if (map) control.remove();
+      routingControlsRef.current.forEach((control) => {
+        try {
+          if (control && control.remove && map && !map._destroyed) {
+            control.remove();
+          }
+        } catch (error) {
+          console.warn("Lỗi khi cleanup routing control:", error);
+        }
       });
       routingControlsRef.current = [];
     };
@@ -118,12 +171,36 @@ function RoutingMachineLayer({ routes, locations, selectedVehicle, COLORS }) {
   return null;
 }
 
-export default function RealMapView({ routes = [], locations = [], selectedVehicle = null }) {
+export default function RealMapView({
+  routes = [],
+  locations = [],
+  selectedVehicle = null,
+}) {
   const COLORS = generateColors(routes.length || 1);
+  const [routingError, setRoutingError] = useState(null);
 
   if (!locations.length) return <p>❗ Chưa có dữ liệu để hiển thị bản đồ.</p>;
 
   const center = [locations[0][0], locations[0][1]];
+
+  // Kiểm tra tọa độ hợp lệ
+  const isValidCoordinate = (lat, lng) => {
+    return (
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180 &&
+      !isNaN(lat) &&
+      !isNaN(lng) &&
+      isFinite(lat) &&
+      isFinite(lng)
+    );
+  };
+
+  // Kiểm tra tất cả tọa độ
+  const hasValidCoordinates = locations.every(([lat, lng]) =>
+    isValidCoordinate(lat, lng)
+  );
 
   // --- Hàm tìm màu viền cho từng node ---
   const getNodeColor = (nodeIdx) => {
@@ -144,33 +221,48 @@ export default function RealMapView({ routes = [], locations = [], selectedVehic
   };
 
   return (
-    <MapContainer
-      center={center}
-      zoom={12}
-      style={{ height: "500px", width: "100%", borderRadius: "12px" }}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-      />
-      <RoutingMachineLayer
-        routes={routes}
-        locations={locations}
-        selectedVehicle={selectedVehicle}
-        COLORS={COLORS}
-      />
+    <div>
+      {!hasValidCoordinates && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          ⚠️ Cảnh báo: Một số tọa độ không hợp lệ. Routing có thể không hoạt
+          động chính xác.
+        </div>
+      )}
 
-      {/* Vẽ các node với số thứ tự và màu viền tương ứng xe */}
-      {locations.map(([lat, lng], idx) => {
-        if (!isNodeVisible(idx)) return null;
+      {routingError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          ❌ Lỗi routing: {routingError}
+        </div>
+      )}
 
-        const borderColor = getNodeColor(idx);
-        const bgColor = idx === 0 ? "black" : "white";
-        const textColor = idx === 0 ? "white" : "black";
+      <MapContainer
+        center={center}
+        zoom={12}
+        style={{ height: "500px", width: "100%", borderRadius: "12px" }}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+        />
+        <RoutingMachineLayer
+          routes={routes}
+          locations={locations}
+          selectedVehicle={selectedVehicle}
+          COLORS={COLORS}
+          onError={setRoutingError}
+        />
 
-        const customIcon = L.divIcon({
-          className: "custom-marker",
-          html: `
+        {/* Vẽ các node với số thứ tự và màu viền tương ứng xe */}
+        {locations.map(([lat, lng], idx) => {
+          if (!isNodeVisible(idx)) return null;
+
+          const borderColor = getNodeColor(idx);
+          const bgColor = idx === 0 ? "black" : "white";
+          const textColor = idx === 0 ? "white" : "black";
+
+          const customIcon = L.divIcon({
+            className: "custom-marker",
+            html: `
             <div style="
               display:flex;
               align-items:center;
@@ -189,18 +281,22 @@ export default function RealMapView({ routes = [], locations = [], selectedVehic
               ${idx === 0 ? "D" : idx}
             </div>
           `,
-        });
+          });
 
-        return (
-          <Marker key={idx} position={[lat, lng]} icon={customIcon}>
-            <Popup>
-              <b>{idx === 0 ? "Depot" : `Node ${idx}`}</b><br />
-              Lat: {lat.toFixed(6)}, Lng: {lng.toFixed(6)}<br />
-              Màu xe: <span style={{ color: borderColor }}>{borderColor}</span>
-            </Popup>
-          </Marker>
-        );
-      })}
-    </MapContainer>
+          return (
+            <Marker key={idx} position={[lat, lng]} icon={customIcon}>
+              <Popup>
+                <b>{idx === 0 ? "Depot" : `Node ${idx}`}</b>
+                <br />
+                Lat: {lat.toFixed(6)}, Lng: {lng.toFixed(6)}
+                <br />
+                Màu xe:{" "}
+                <span style={{ color: borderColor }}>{borderColor}</span>
+              </Popup>
+            </Marker>
+          );
+        })}
+      </MapContainer>
+    </div>
   );
 }

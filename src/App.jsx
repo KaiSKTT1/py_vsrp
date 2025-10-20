@@ -16,7 +16,10 @@ function App() {
       return route.reduce((total, point, idx) => {
         if (idx === 0) return 0;
         const prevPoint = route[idx - 1];
-        if (distanceMatrix[prevPoint] && typeof distanceMatrix[prevPoint][point] === 'number') {
+        if (
+          distanceMatrix[prevPoint] &&
+          typeof distanceMatrix[prevPoint][point] === "number"
+        ) {
           return total + distanceMatrix[prevPoint][point];
         }
         return total;
@@ -50,8 +53,9 @@ function App() {
       {/* Nút chọn loại bản đồ */}
       <div className="flex gap-2 mb-4">
         <button
-          className={`px-4 py-2 rounded ${!showRealMap ? "bg-blue-600 text-white" : "bg-gray-300"
-            }`}
+          className={`px-4 py-2 rounded ${
+            !showRealMap ? "bg-blue-600 text-white" : "bg-gray-300"
+          }`}
           onClick={() => {
             setShowRealMap(false);
             setSelectedVehicle(null);
@@ -60,8 +64,9 @@ function App() {
           Bản đồ CVRP (tọa độ phẳng)
         </button>
         <button
-          className={`px-4 py-2 rounded ${showRealMap ? "bg-blue-600 text-white" : "bg-gray-300"
-            }`}
+          className={`px-4 py-2 rounded ${
+            showRealMap ? "bg-blue-600 text-white" : "bg-gray-300"
+          }`}
           onClick={() => {
             setShowRealMap(true);
             setSelectedVehicle(null);
@@ -85,12 +90,15 @@ function App() {
                 <h2 className="font-bold">Kết quả tối ưu hóa</h2>
                 <button
                   onClick={handleShowAll}
-                  className={`px-3 py-1 rounded text-sm ${selectedVehicle === "all"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 hover:bg-gray-300"
-                    }`}
+                  className={`px-3 py-1 rounded text-sm ${
+                    selectedVehicle === "all"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 hover:bg-gray-300"
+                  }`}
                 >
-                  {selectedVehicle === "all" ? "Đang hiển thị tất cả" : "Hiển thị tất cả"}
+                  {selectedVehicle === "all"
+                    ? "Đang hiển thị tất cả"
+                    : "Hiển thị tất cả"}
                 </button>
               </div>
               <p>
@@ -111,8 +119,9 @@ function App() {
                   <div
                     key={i}
                     onClick={() => handleSelectVehicle(i)}
-                    className={`flex items-center gap-2 mt-1 cursor-pointer transition ${isSelected ? "bg-blue-100" : "hover:bg-gray-100"
-                      } p-1 rounded`}
+                    className={`flex items-center gap-2 mt-1 cursor-pointer transition ${
+                      isSelected ? "bg-blue-100" : "hover:bg-gray-100"
+                    } p-1 rounded`}
                   >
                     <div
                       style={{
@@ -136,18 +145,36 @@ function App() {
                       </div>
                       <div className="text-sm text-gray-600 mt-1">
                         <div>
-                          Tải trọng: <b>{
-                            route.reduce((sum, point) => sum + (data.demands[point] || 0), 0)
-                          }</b>/{data.vehicle_capacity} đơn vị
+                          Tải trọng:{" "}
+                          <b>
+                            {route.reduce(
+                              (sum, point) => sum + (data.demands[point] || 0),
+                              0
+                            )}
+                          </b>
+                          /{data.vehicle_capacity} đơn vị
                           <div className="w-full bg-gray-200 rounded h-2 mt-1">
                             <div
-                              className={`h-full rounded ${route.reduce((sum, point) => sum + (data.demands[point] || 0), 0) > data.vehicle_capacity
-                                ? 'bg-red-500'
-                                : 'bg-green-500'
-                                }`}
+                              className={`h-full rounded ${
+                                route.reduce(
+                                  (sum, point) =>
+                                    sum + (data.demands[point] || 0),
+                                  0
+                                ) > data.vehicle_capacity
+                                  ? "bg-red-500"
+                                  : "bg-green-500"
+                              }`}
                               style={{
-                                width: `${Math.min(100, (route.reduce((sum, point) =>
-                                  sum + (data.demands[point] || 0), 0) / data.vehicle_capacity) * 100)}%`
+                                width: `${Math.min(
+                                  100,
+                                  (route.reduce(
+                                    (sum, point) =>
+                                      sum + (data.demands[point] || 0),
+                                    0
+                                  ) /
+                                    data.vehicle_capacity) *
+                                    100
+                                )}%`,
                               }}
                             ></div>
                           </div>
@@ -156,9 +183,22 @@ function App() {
                           {/* Hiển thị khoảng cách */}
                           {data.distance_matrix && (
                             <>
-                              Quãng đường: <b>
-                                {calculateRouteDistance(route, data.distance_matrix).toLocaleString()} mét
-                              </b> ({(calculateRouteDistance(route, data.distance_matrix) / 1000).toFixed(2)} km)
+                              Quãng đường:{" "}
+                              <b>
+                                {calculateRouteDistance(
+                                  route,
+                                  data.distance_matrix
+                                ).toLocaleString()}{" "}
+                                mét
+                              </b>{" "}
+                              (
+                              {(
+                                calculateRouteDistance(
+                                  route,
+                                  data.distance_matrix
+                                ) / 1000
+                              ).toFixed(2)}{" "}
+                              km)
                             </>
                           )}
                         </div>
@@ -174,14 +214,18 @@ function App() {
               <MapView
                 routes={data.routes}
                 locations={data.locations}
-                selectedVehicle={selectedVehicle === "all" ? null : selectedVehicle}
+                selectedVehicle={
+                  selectedVehicle === "all" ? null : selectedVehicle
+                }
                 showAllRoutes={selectedVehicle === "all"}
               />
             ) : (
               <RealMapView
                 routes={data.routes}
                 locations={data.locations}
-                selectedVehicle={selectedVehicle === "all" ? null : selectedVehicle}
+                selectedVehicle={
+                  selectedVehicle === "all" ? null : selectedVehicle
+                }
                 showAllRoutes={selectedVehicle === "all"}
               />
             )}
