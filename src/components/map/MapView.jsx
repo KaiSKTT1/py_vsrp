@@ -29,7 +29,7 @@ function FitBoundsComponent({ locations }) {
         [Math.min(...ys) - 10, Math.min(...xs) - 10],
         [Math.max(...ys) + 10, Math.max(...xs) + 10],
       ];
-      
+
       // Fit map vào bounds
       map.fitBounds(bounds, {
         padding: [50, 50],
@@ -72,7 +72,7 @@ const MapView = ({ locations = [], routes = [], selectedVehicle = null }) => {
     >
       {/* Tự động fit bounds khi locations thay đổi */}
       <FitBoundsComponent locations={locations} />
-      
+
       {/* Vẽ các tuyến đường */}
       {visibleRoutes.map((route, idx) => {
         const latlngs = route.map((i) => {

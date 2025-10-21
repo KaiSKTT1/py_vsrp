@@ -27,7 +27,7 @@ function FitBoundsComponent({ locations }) {
       const bounds = L.latLngBounds(
         locations.map(([lat, lng]) => [lat, lng])
       );
-      
+
       // Fit map vào bounds với padding
       map.fitBounds(bounds, {
         padding: [50, 50],
@@ -172,8 +172,7 @@ function RoutingMachineLayer({
           console.warn("Lỗi khi tạo fallback line:", fallbackError);
           if (onError) {
             onError(
-              `Không thể vẽ đường thẳng cho xe ${routeIndex + 1}: ${
-                fallbackError.message
+              `Không thể vẽ đường thẳng cho xe ${routeIndex + 1}: ${fallbackError.message
               }`
             );
           }
@@ -272,10 +271,10 @@ export default function RealMapView({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
         />
-        
+
         {/* Tự động fit bounds khi locations thay đổi */}
         <FitBoundsComponent locations={locations} />
-        
+
         <RoutingMachineLayer
           routes={routes}
           locations={locations}
