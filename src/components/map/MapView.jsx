@@ -1,5 +1,6 @@
-import { MapContainer, Polyline, Marker, Popup } from "react-leaflet";
+import { MapContainer, Polyline, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { useEffect } from "react";
 import L from "leaflet";
 
 //  Hàm sinh màu động dựa trên số lượng xe
@@ -11,6 +12,36 @@ function generateColors(n) {
     colors.push(`hsl(${hue}, 80%, 50%)`);
   }
   return colors;
+}
+
+// Component tự động fit bounds khi locations thay đổi
+function FitBoundsComponent({ locations }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!locations || locations.length === 0) return;
+
+    try {
+      // Tính bounding box cho CVRP coordinates (x, y)
+      const xs = locations.map((loc) => loc[0]);
+      const ys = locations.map((loc) => loc[1]);
+      const bounds = [
+        [Math.min(...ys) - 10, Math.min(...xs) - 10],
+        [Math.max(...ys) + 10, Math.max(...xs) + 10],
+      ];
+      
+      // Fit map vào bounds
+      map.fitBounds(bounds, {
+        padding: [50, 50],
+        animate: true,
+        duration: 0.5
+      });
+    } catch (error) {
+      console.error("Lỗi khi fit bounds:", error);
+    }
+  }, [locations, map]);
+
+  return null;
 }
 
 const MapView = ({ locations = [], routes = [], selectedVehicle = null }) => {
@@ -39,6 +70,9 @@ const MapView = ({ locations = [], routes = [], selectedVehicle = null }) => {
       bounds={bounds}
       style={{ height: "500px", width: "100%", borderRadius: "12px" }}
     >
+      {/* Tự động fit bounds khi locations thay đổi */}
+      <FitBoundsComponent locations={locations} />
+      
       {/* Vẽ các tuyến đường */}
       {visibleRoutes.map((route, idx) => {
         const latlngs = route.map((i) => {

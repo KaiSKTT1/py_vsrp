@@ -15,6 +15,34 @@ function generateColors(n) {
   return colors;
 }
 
+// Component tự động fit bounds khi locations thay đổi
+function FitBoundsComponent({ locations }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!locations || locations.length === 0) return;
+
+    try {
+      // Tạo bounds từ tất cả các điểm
+      const bounds = L.latLngBounds(
+        locations.map(([lat, lng]) => [lat, lng])
+      );
+      
+      // Fit map vào bounds với padding
+      map.fitBounds(bounds, {
+        padding: [50, 50],
+        maxZoom: 15,
+        animate: true,
+        duration: 0.5
+      });
+    } catch (error) {
+      console.error("Lỗi khi fit bounds:", error);
+    }
+  }, [locations, map]);
+
+  return null;
+}
+
 // Component con để xử lý routing với fix lỗi removeLayer
 function RoutingMachineLayer({
   routes,
@@ -244,6 +272,10 @@ export default function RealMapView({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
         />
+        
+        {/* Tự động fit bounds khi locations thay đổi */}
+        <FitBoundsComponent locations={locations} />
+        
         <RoutingMachineLayer
           routes={routes}
           locations={locations}
