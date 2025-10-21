@@ -3,10 +3,12 @@
 @tailwind utilities;
 
 .heading {
-    @apply text-3xl font-bold mb-6 text-gray-800;
+  @apply text-3xl font-bold mb-6 text-gray-800;
 }
 
-#root, html, body {
+#root,
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
