@@ -36,204 +36,245 @@ function App() {
   }, [data]);
 
   const handleSelectVehicle = (index) => {
-    setSelectedVehicle((prev) => (prev === index ? null : index)); // toggle chọn/bỏ chọn
+    setSelectedVehicle((prev) => (prev === index ? null : index));
   };
 
   const handleShowAll = () => {
-    setSelectedVehicle("all"); // Sử dụng giá trị đặc biệt "all"
+    setSelectedVehicle("all");
   };
 
   const getColorForVehicle = (i, total) =>
     `hsl(${(i * 360) / (total || 1)}, 80%, 50%)`;
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">CVRP Web</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Header */}
+      <div className="text-center py-8">
+        <h1 className="text-5xl font-bold text-indigo-600 mb-2">
+          CVRP Web Solution
+        </h1>
+        <p className="text-gray-600 text-lg">Tối ưu hóa tuyến đường vận chuyển</p>
+      </div>
 
-      {/* Nút chọn loại bản đồ */}
-      <div className="flex gap-2 mb-4">
+      {/* Map Toggle Buttons */}
+      <div className="flex justify-center gap-4 mb-6">
         <button
-          className={`px-4 py-2 rounded ${
-            !showRealMap ? "bg-blue-600 text-white" : "bg-gray-300"
-          }`}
           onClick={() => {
             setShowRealMap(false);
             setSelectedVehicle(null);
           }}
+          className={`px-6 py-3 rounded-lg font-medium transition-all shadow-md ${
+            !showRealMap
+              ? "bg-blue-600 text-white"
+              : "bg-white text-gray-700 hover:bg-gray-100"
+          }`}
         >
-          Bản đồ CVRP (tọa độ phẳng)
+          🗺️ Bản đồ CVRP (tọa độ phẳng)
         </button>
         <button
-          className={`px-4 py-2 rounded ${
-            showRealMap ? "bg-blue-600 text-white" : "bg-gray-300"
-          }`}
           onClick={() => {
             setShowRealMap(true);
             setSelectedVehicle(null);
           }}
+          className={`px-6 py-3 rounded-lg font-medium transition-all shadow-md ${
+            showRealMap
+              ? "bg-green-600 text-white"
+              : "bg-white text-gray-700 hover:bg-gray-100"
+          }`}
         >
-          Bản đồ Việt Nam (thực tế)
+          🌍 Bản đồ Việt Nam (thực tế)
         </button>
       </div>
 
-      {/* Upload */}
-      {!showRealMap && <UploadForm onResult={setData} />}
-      {showRealMap && <UploadRealMap onResult={setData} />}
+      {/* Upload Form Section */}
+      <div className="max-w-7xl mx-auto px-4 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          {!showRealMap ? (
+            <UploadForm onResult={setData} setData={setData} />
+          ) : (
+            <UploadRealMap onResult={setData} setData={setData} />
+          )}
+        </div>
+      </div>
 
-      {/* Kết quả & bản đồ */}
-      <div className="mt-4">
-        {data ? (
-          <>
-            {/* Bảng thông tin */}
-            <div className="bg-gray-100 p-3 rounded mb-4 shadow">
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="font-bold">Kết quả tối ưu hóa</h2>
-                <button
-                  onClick={handleShowAll}
-                  className={`px-3 py-1 rounded text-sm ${
-                    selectedVehicle === "all"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 hover:bg-gray-300"
-                  }`}
-                >
-                  {selectedVehicle === "all"
-                    ? "Đang hiển thị tất cả"
-                    : "Hiển thị tất cả"}
-                </button>
-              </div>
-              <p>
-                Tổng nhu cầu: <b>{data.total_demand}</b>
-              </p>
-              <p>
-                Số xe: <b>{data.vehicle_count}</b>
-              </p>
-              <p>
-                Tổng tuyến đường: <b>{data.routes?.length || 0}</b>
-              </p>
+      {/* Main Content */}
+      {data ? (
+        <div className="max-w-7xl mx-auto px-4 pb-8">
+          <div className="flex gap-6">
+            {/* Left Sidebar - Results */}
+            <div className="w-96 flex-shrink-0">
+              <div className="bg-white rounded-xl shadow-lg p-6 sticky top-4">
+                <div className="border-l-4 border-indigo-600 pl-4 mb-6">
+                  <h2 className="text-xl font-bold text-gray-800">
+                    Kết quả tối ưu hóa
+                  </h2>
+                </div>
 
-              {data.routes?.map((route, i) => {
-                const color = getColorForVehicle(i, data.routes.length);
-                const isSelected = selectedVehicle === i;
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-indigo-50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-gray-600 mb-1">Tổng nhu cầu</p>
+                    <p className="text-2xl font-bold text-indigo-600">
+                      {data.total_demand}
+                    </p>
+                  </div>
+                  <div className="bg-indigo-50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-gray-600 mb-1">Số xe</p>
+                    <p className="text-2xl font-bold text-indigo-600">
+                      {data.vehicle_count}
+                    </p>
+                  </div>
+                </div>
 
-                return (
-                  <div
-                    key={i}
-                    onClick={() => handleSelectVehicle(i)}
-                    className={`flex items-center gap-2 mt-1 cursor-pointer transition ${
-                      isSelected ? "bg-blue-100" : "hover:bg-gray-100"
-                    } p-1 rounded`}
-                  >
-                    <div
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: "50%",
-                        backgroundColor: color,
-                        border: "1px solid #333",
-                      }}
-                    ></div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span>
-                          🚚 <b>Xe {i + 1}</b>: {route.join(" → ")}
-                        </span>
-                        {isSelected && (
-                          <span className="text-sm text-blue-600">
-                            (đang hiển thị)
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        <div>
-                          Tải trọng:{" "}
-                          <b>
-                            {route.reduce(
-                              (sum, point) => sum + (data.demands[point] || 0),
-                              0
-                            )}
-                          </b>
-                          /{data.vehicle_capacity} đơn vị
-                          <div className="w-full bg-gray-200 rounded h-2 mt-1">
+                <div className="bg-indigo-50 rounded-lg p-4 text-center mb-6">
+                  <p className="text-sm text-gray-600 mb-1">Tổng tuyến đường</p>
+                  <p className="text-2xl font-bold text-indigo-600">
+                    {data.routes?.length || 0}
+                  </p>
+                </div>
+
+                {/* Route List */}
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold text-gray-700">
+                      Danh sách tuyến đường:
+                    </h3>
+                    <button
+                      onClick={handleShowAll}
+                      className="text-xs px-3 py-1 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition"
+                    >
+                      {selectedVehicle === "all"
+                        ? "Đang hiển thị tất cả"
+                        : "Hiển thị tất cả"}
+                    </button>
+                  </div>
+
+                  <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                    {data.routes?.map((route, i) => {
+                      const color = getColorForVehicle(i, data.routes.length);
+                      const isSelected = selectedVehicle === i;
+                      const loadAmount = route.reduce(
+                        (sum, point) => sum + (data.demands[point] || 0),
+                        0
+                      );
+                      const loadPercent =
+                        (loadAmount / data.vehicle_capacity) * 100;
+
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => handleSelectVehicle(i)}
+                          className={`cursor-pointer transition-all rounded-lg border-2 p-4 ${
+                            isSelected
+                              ? "border-indigo-600 bg-indigo-50 shadow-md"
+                              : "border-gray-200 bg-white hover:border-gray-300 hover:shadow"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 mb-2">
                             <div
-                              className={`h-full rounded ${
-                                route.reduce(
-                                  (sum, point) =>
-                                    sum + (data.demands[point] || 0),
-                                  0
-                                ) > data.vehicle_capacity
-                                  ? "bg-red-500"
-                                  : "bg-green-500"
-                              }`}
                               style={{
-                                width: `${Math.min(
-                                  100,
-                                  (route.reduce(
-                                    (sum, point) =>
-                                      sum + (data.demands[point] || 0),
-                                    0
-                                  ) /
-                                    data.vehicle_capacity) *
-                                    100
-                                )}%`,
+                                width: 20,
+                                height: 20,
+                                borderRadius: "50%",
+                                backgroundColor: color,
+                                border: "2px solid #333",
+                                flexShrink: 0,
                               }}
                             ></div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-gray-800">
+                                Xe {i + 1}
+                              </div>
+                              <div className="text-xs text-gray-500 truncate">
+                                {route.join(" → ")}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="mt-1">
-                          {/* Hiển thị khoảng cách */}
+
+                          {/* Load Bar */}
+                          <div className="mb-2">
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                              <span>Tải trọng:</span>
+                              <span>
+                                <b>{loadAmount}</b>/{data.vehicle_capacity}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  loadAmount > data.vehicle_capacity
+                                    ? "bg-red-500"
+                                    : "bg-green-500"
+                                }`}
+                                style={{
+                                  width: `${Math.min(100, loadPercent)}%`,
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+
+                          {/* Distance */}
                           {data.distance_matrix && (
-                            <>
+                            <div className="text-xs text-gray-600">
                               Quãng đường:{" "}
-                              <b>
-                                {calculateRouteDistance(
-                                  route,
-                                  data.distance_matrix
-                                ).toLocaleString()}{" "}
-                                mét
-                              </b>{" "}
-                              (
-                              {(
-                                calculateRouteDistance(
-                                  route,
-                                  data.distance_matrix
-                                ) / 1000
-                              ).toFixed(2)}{" "}
-                              km)
-                            </>
+                              <b className="text-gray-800">
+                                {(
+                                  calculateRouteDistance(
+                                    route,
+                                    data.distance_matrix
+                                  ) / 1000
+                                ).toFixed(2)}{" "}
+                                km
+                              </b>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              </div>
             </div>
 
-            {/* Bản đồ */}
-            {!showRealMap ? (
-              <MapView
-                routes={data.routes}
-                locations={data.locations}
-                selectedVehicle={
-                  selectedVehicle === "all" ? null : selectedVehicle
-                }
-                showAllRoutes={selectedVehicle === "all"}
-              />
-            ) : (
-              <RealMapView
-                routes={data.routes}
-                locations={data.locations}
-                selectedVehicle={
-                  selectedVehicle === "all" ? null : selectedVehicle
-                }
-                showAllRoutes={selectedVehicle === "all"}
-              />
-            )}
-          </>
-        ) : (
-          <div className="text-gray-500">Chưa có dữ liệu.</div>
-        )}
-      </div>
+            {/* Right Side - Map */}
+            <div className="flex-1">
+              <div
+                className="bg-white rounded-xl shadow-lg overflow-hidden"
+                style={{ height: "700px" }}
+              >
+                {!showRealMap ? (
+                  <MapView
+                    routes={data.routes}
+                    locations={data.locations}
+                    selectedVehicle={
+                      selectedVehicle === "all" ? null : selectedVehicle
+                    }
+                    showAllRoutes={selectedVehicle === "all"}
+                  />
+                ) : (
+                  <RealMapView
+                    routes={data.routes}
+                    locations={data.locations}
+                    selectedVehicle={
+                      selectedVehicle === "all" ? null : selectedVehicle
+                    }
+                    showAllRoutes={selectedVehicle === "all"}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+            <div className="text-6xl mb-4">🗺️</div>
+            <p className="text-gray-500 text-lg">
+              Chưa có dữ liệu. Vui lòng upload file để bắt đầu!
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
