@@ -82,7 +82,7 @@ distance = haversine_distance(21.0285, 105.8542, 10.8231, 106.6297)
 
 **Câu hỏi thầy có thể hỏi:**
 - **Q: Tại sao không dùng API Google Maps?**
-  - A: API tốn phí, giới hạn số lượng request, và không cần thiết cho bài toán tối ưu. Haversine đủ chính xác cho CVRP.
+  - A: API tốn phí, giới hạn số lượng request, và không cần thiết cho bài toán tối ưu. Haversine đủ chính xác cho CVRP với ràng buộc khối lượng.
 
 - **Q: Sai số bao nhiêu so với đường thực tế?**
   - A: Haversine tính đường chim bay, sai số ~10-15% so với đường đi thực tế (có khúc cua, đèo dốc). Nhưng tỷ lệ này đồng đều nên không ảnh hưởng đến tối ưu.
